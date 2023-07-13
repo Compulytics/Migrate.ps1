@@ -80,7 +80,7 @@ function TakeProfile{
 	}
 	Stop-Process -Name chrome -ErrorAction SilentlyContinue
 	Stop-Process -Name msedge -ErrorAction SilentlyContinue
-	Stop-Process -Name firefox -ErrorAction SilentlyContinuec
+	Stop-Process -Name firefox -ErrorAction SilentlyContinue
 	if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
 		Write-Host "Copying Chrome Data"
 		Copy-Item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
