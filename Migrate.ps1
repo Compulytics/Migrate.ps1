@@ -52,6 +52,14 @@ function TakeProfile{
 		if($_.Directory){
 			Copy-Item "$Home\$_" -Destination "$Dest\$Usr\"
 		}
+		else{
+			if (!(Test-Path $Dest\$Usr\RootFolders)){
+				New-Item $Dest\$Usr\RootFolders -ItemType Directory | Out-Null
+			}
+			if ([string]$_ -ne "Contacts" -and [string]$_ -ne "Desktop" -and [string]$_ -ne "Documents" -and [string]$_ -ne "Downloads" -and [string]$_ -ne "Favorites" -and [string]$_ -ne "Music" -and [string]$_ -ne "Music" -and [string]$_ -ne "Pictures" -and [string]$_ -ne "Videos" -and [string]$_ -ne "3D Objects" -and [string]$_ -ne "Links" -and [string]$_ -ne "OneDrive" -and [string]$_ -ne "Saved Games" -and [string]$_ -ne "Searches"){
+				Copy-Item "$Home\$_" -Recurse -Destination "$Dest\$Usr\RootFolders"
+			}
+		}
 	}
 	$FoldersToCopy | Foreach-Object{
 		Write-Host "Copying $_ Folder"
@@ -74,7 +82,7 @@ function TakeProfile{
 	}
 }
 function PutProfile{
-	$FoldersToPaste = @("Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
+	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
 	$Repo = Read-Host "Enter Profile Source Path"
 	if (Test-Path $Repo){
 		if (Test-Path $Repo\$Usr){
@@ -85,7 +93,12 @@ function PutProfile{
 				}
 			}
 			$FoldersTopaste | Foreach-Object{
-				Write-Host "Pasting $_ Folder"
+				if ([string]$_ -eq "RootFolders\*"){
+					Write-Host "Pasting Home Folder Folders"
+				}
+				else{
+					Write-Host "Pasting $_ Folder"
+				}
 				PasteFiles "$Repo" "$_"
 			}
 			Stop-Process -Name chrome -ErrorAction SilentlyContinue
