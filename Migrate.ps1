@@ -60,10 +60,18 @@ function TakeProfile{
 	}
 	Stop-Process -Name chrome -ErrorAction SilentlyContinue
 	Stop-Process -Name msedge -ErrorAction SilentlyContinue
-	Write-Host "Copying Chrome Data"
-	Copy-Item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
+	Stop-Process -Name firefox -ErrorAction SilentlyContinue
+	if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
+		Write-Host "Copying Chrome Data"
+		Copy-Item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
+	}
 	Write-Host "Copying Edge Data"
 	Copy-Item "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Destination $Dest\$Usr\EdgeData\Default -Recurse
+	if (Test-Path "$Home\AppData\Roaming\Mozilla\Firefox\Profiles"){
+		Write-Host "Copying Firefox Data"
+		Copy-Item "$Home\AppData\Roaming\Mozilla\Firefox\Profiles" -Destination $Dest\$Usr\FirefoxData\Profiles -Recurse
+		Copy-Item "$Home\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Destination $Dest\$Usr\FirefoxData\profiles.ini
+	}
 }
 function PutProfile{
 	$FoldersToPaste = @("Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
@@ -82,16 +90,30 @@ function PutProfile{
 			}
 			Stop-Process -Name chrome -ErrorAction SilentlyContinue
 			Stop-Process -Name msedge -ErrorAction SilentlyContinue
-			Write-Host "Pasting Chrome Data Folder"
-			if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
-				remove-item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
+			Stop-Process -Name firefox -ErrorAction SilentlyContinue
+
+			if (Test-Path $Repo\$Usr\ChromeData\Default){
+				Write-Host "Pasting Chrome Data Folder"
+				if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
+					remove-item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
+				}
+				Copy-Item $Repo\$Usr\ChromeData\Default "$Home\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
 			}
-			Copy-Item $Repo\$Usr\ChromeData\Default "$Home\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
+
 			Write-Host "Pasting Edge Data Folder"
 			if (Test-Path "$Home\AppData\Local\Microsoft\Edge\User Data\Default"){
 				remove-item "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Force -Recurse
 			}
 			Copy-Item $Repo\$Usr\EdgeData\Default "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Force -Recurse
+			if (Test-Path $Repo\$Usr\FirefoxData\Profiles){
+				Write-Host "Pasting Firefox Data Folder"
+				if (Test-Path "$Home\AppData\Roaming\Mozilla\Firefox\Profiles"){
+					remove-item "$Home\AppData\Roaming\Mozilla\Firefox\Profiles" -Force -Recurse
+					remove-item "$Home\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Force
+				}
+				Copy-Item $Repo\$Usr\FirefoxData\Profiles "$Home\AppData\Roaming\Mozilla\Firefox\Profiles" -Force -Recurse
+				Copy-Item $Repo\$Usr\FirefoxData\profiles.ini  "$Home\AppData\Roaming\Mozilla\Firefox\profiles.ini"
+			}
 		}
 		else{
 			Write-Host "User Profile Not Found! (Username different at source and destination?)"
