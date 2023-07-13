@@ -36,14 +36,23 @@ function TakeProfile{
 	if ($Dest.Length -eq 0){
 		$Dest = Read-Host "Enter Destination Path"
 	}
+	else{
+		$Overwrite = "y"
+	}
 	if (Test-Path -Path $Dest\$Usr){
-		Write-Host "User ID Already Exists"
-		$Overwrite = Read-Host "Overwrite existing data? (y,n)"
-		if ($Overwrite -eq "y"){
+		if ($Overwrite){
+			Write-Host "User ID Already Exists - Overwriting"
 			remove-item $Dest\$Usr -Force -Recurse
 		}
 		else{
-			exit
+			Write-Host "User ID Already Exists"
+			$Overwrite = Read-Host "Overwrite existing data? (y,n)"
+			if ($Overwrite -eq "y"){
+				remove-item $Dest\$Usr -Force -Recurse
+			}
+			else{
+				exit
+			}
 		}
 	}
 	else{
@@ -71,7 +80,7 @@ function TakeProfile{
 	}
 	Stop-Process -Name chrome -ErrorAction SilentlyContinue
 	Stop-Process -Name msedge -ErrorAction SilentlyContinue
-	Stop-Process -Name firefox -ErrorAction SilentlyContinue
+	Stop-Process -Name firefox -ErrorAction SilentlyContinuec
 	if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
 		Write-Host "Copying Chrome Data"
 		Copy-Item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
