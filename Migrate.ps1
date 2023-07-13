@@ -31,8 +31,11 @@ function PasteFiles{
 	Copy-Item $Repo\$Usr\$Folder $Home -Recurse -Force -ErrorAction SilentlyContinue
 }
 function TakeProfile{
+	param([parameter(Mandatory=$false)][string]$Dest)
 	$FoldersToCopy = @("Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
-	$Dest = Read-Host "Enter Destination Path"
+	if ($Dest.Length -eq 0){
+		$Dest = Read-Host "Enter Destination Path"
+	}
 	if (Test-Path -Path $Dest\$Usr){
 		Write-Host "User ID Already Exists"
 		$Overwrite = Read-Host "Overwrite existing data? (y,n)"
@@ -82,8 +85,11 @@ function TakeProfile{
 	}
 }
 function PutProfile{
+	param([parameter(Mandatory=$false)][string]$Repo)
 	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
-	$Repo = Read-Host "Enter Profile Source Path"
+	if ($Repo.Length -eq 0){
+		$Repo = Read-Host "Enter Destination Path"
+	}
 	if (Test-Path $Repo){
 		if (Test-Path $Repo\$Usr){
 			Write-Host "Pasting Home Folder Contents"
@@ -139,12 +145,30 @@ function PutProfile{
 	}
 }
 $Usr = $Env:UserName
-$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
+if ([string]$args[0] -eq "-c"){
+	$Mode = "c"
+}
+elseif ([string]$args[0] -eq "-p"){
+	$Mode = "p"
+}
+else{
+	$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
+}
 if ($Mode -eq "c"){
-	TakeProfile
+	if ([string]$args[1]){
+		TakeProfile $args[1]
+	}
+	else{
+		TakeProfile
+	}
 }
 elseif ($Mode -eq "p"){
-	PutProfile
+	if ([string]$args[1]){
+		PutProfile $args[1]
+	}
+	else{
+		PutProfile
+	}
 }
 else{
 	Write-Host "Invalid Selection!"
