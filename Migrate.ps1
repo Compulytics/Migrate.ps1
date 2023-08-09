@@ -95,9 +95,20 @@ function TakeProfile{
 }
 function PutProfile{
 	param([parameter(Mandatory=$false)][string]$Repo)
+	$ValidProfiles = @()
 	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
 	if ($Repo.Length -eq 0){
 		$Repo = Read-Host "Enter Destination Path"
+	}
+	if ($Usr.Length -eq 0){
+		Write-Host "================================="
+		Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){Write-Host $_;$ValidProfiles += $_}}
+		Write-Host "================================="
+		$Usr = Read-Host "Which profile would you like to paste?"
+		if (!($Usr.Contains($ValidProfiles))){
+			Write-Host "Invalid Selection!"
+			exit
+		}
 	}
 	if (Test-Path $Repo){
 		if (Test-Path $Repo\$Usr){
@@ -144,7 +155,7 @@ function PutProfile{
 			}
 		}
 		else{
-			Write-Host "User Profile Not Found! (Username different at source and destination?)"
+			Write-Host "User Profile Not Found!"
 			exit
 		}
 	}
@@ -153,12 +164,33 @@ function PutProfile{
 		exit
 	}
 }
-$Usr = $Env:UserName
 if ([string]$args[0] -eq "-c"){
+	$Usr = $Env:UserName
 	$Mode = "c"
 }
 elseif ([string]$args[0] -eq "-p"){
 	$Mode = "p"
+}
+elseif ([string]$args[0] -eq "-h"){
+	Write-Host "Usage:"
+	Write-Host ".\ThisProgram.ps1 [OPTIONS] <PROFILE REPOSITORY PATH> [OPTIONS 2] <PROFILE NAME>"
+	Write-Host "======================================================================="
+	Write-Host "|| OPTIONS:                                                          ||"
+	Write-Host "======================================================================="
+	Write-Host "|| -c                                                   Copy Profile ||"
+	Write-Host "|| -p                                                  Paste Profile ||"
+	Write-Host "|| -h                                                Print This Page ||"
+	Write-Host "======================================================================="
+	Write-Host "|| OPTIONS 2:                                                        ||"
+	Write-Host "======================================================================="
+	Write-Host "|| -u                                           Paste <PROFILE NAME> ||"
+	Write-Host "|| -a                       Assume (Automatically gets profile name) ||"
+	Write-Host "======================================================================="
+	Write-Host "||                                NOTE                               ||"
+	Write-Host "======================================================================="
+	Write-Host "|| OPTIONS 2 and PROFILE NAME are only valid when -p option selected ||"
+	Write-Host "======================================================================="
+	exit
 }
 else{
 	$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
@@ -173,6 +205,16 @@ if ($Mode -eq "c"){
 }
 elseif ($Mode -eq "p"){
 	if ([string]$args[1]){
+		if ([string]$args[2]){
+			if ([string]$args[2] -eq "-u"){
+				if ([string]$args[3]){
+					$Usr = [string]$args[3]
+				}
+			}
+			elseif ([string]$args[2] -eq "-a"){
+				$Usr = $Env:UserName
+			}
+		}
 		PutProfile $args[1]
 	}
 	else{
