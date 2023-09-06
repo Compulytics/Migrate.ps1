@@ -196,6 +196,7 @@ else{
 	$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
 }
 if ($Mode -eq "c"){
+	$Usr = $Env:UserName
 	if ([string]$args[1]){
 		TakeProfile $args[1]
 	}
