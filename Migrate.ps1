@@ -46,7 +46,6 @@ function TakeProfile{
 		}
 		else{
 			Write-Host "User ID Already Exists"
-			Write-Host "$Dest\$Usr"
 			$Overwrite = Read-Host "Overwrite existing data? (y,n)"
 			if ($Overwrite -eq "y"){
 				remove-item $Dest\$Usr -Force -Recurse
