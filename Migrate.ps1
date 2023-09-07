@@ -46,6 +46,7 @@ function TakeProfile{
 		}
 		else{
 			Write-Host "User ID Already Exists"
+			Write-Host "$Dest\$Usr"
 			$Overwrite = Read-Host "Overwrite existing data? (y,n)"
 			if ($Overwrite -eq "y"){
 				remove-item $Dest\$Usr -Force -Recurse
@@ -103,7 +104,7 @@ function PutProfile{
 	if ($Usr.Length -eq 0){
 		Write-Host "================================="
 		Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){Write-Host $_;$ValidProfiles += $_}}
-  		if ($ValidProfiles.Length -eq 0){
+		if ($ValidProfiles.Length -eq 0){
 			Write-Host "NO PROFILES FOUND"
 			Write-Host "================================="
 			exit
