@@ -98,7 +98,7 @@ function PutProfile{
 	$ValidProfiles = @()
 	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
 	if ($Repo.Length -eq 0){
-		$Repo = Read-Host "Enter Destination Path"
+		$Repo = Read-Host "Enter Profile Source Path"
 	}
 	if ($Usr.Length -eq 0){
 		Write-Host "================================="
