@@ -68,7 +68,7 @@ function TakeProfile{
 			if (!(Test-Path $Dest\$Usr\RootFolders)){
 				New-Item $Dest\$Usr\RootFolders -ItemType Directory | Out-Null
 			}
-			if ([string]$_ -ne "Contacts" -and [string]$_ -ne "Desktop" -and [string]$_ -ne "Documents" -and [string]$_ -ne "Downloads" -and [string]$_ -ne "Favorites" -and [string]$_ -ne "Music" -and [string]$_ -ne "Music" -and [string]$_ -ne "Pictures" -and [string]$_ -ne "Videos" -and [string]$_ -ne "3D Objects" -and [string]$_ -ne "Links" -and [string]$_ -ne "OneDrive" -and [string]$_ -ne "Saved Games" -and [string]$_ -ne "Searches"){
+			if ([string]$_ -ne "Contacts" -and [string]$_ -ne "Desktop" -and [string]$_ -ne "Documents" -and [string]$_ -ne "Downloads" -and [string]$_ -ne "Favorites" -and [string]$_ -ne "Music" -and [string]$_ -ne "Pictures" -and [string]$_ -ne "Videos" -and [string]$_ -ne "3D Objects" -and [string]$_ -ne "Links" -and [string]$_ -ne "OneDrive" -and [string]$_ -ne "Saved Games" -and [string]$_ -ne "Searches"){
 				Copy-Item "$Home\$_" -Recurse -Destination "$Dest\$Usr\RootFolders"
 			}
 		}
