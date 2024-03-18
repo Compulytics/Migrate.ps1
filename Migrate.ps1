@@ -60,57 +60,57 @@ function TakeProfile{
 	}
 
 	Write-Host "Copying Home Folder Contents"
-	Get-ChildItem $Home | Foreach-Object{
+	Get-ChildItem $SystemDrive\Users\$Usr\ | Foreach-Object{
 		if($_.Directory){
-			Copy-Item "$Home\$_" -Destination "$Dest\$Usr\"
+			Copy-Item "$SystemDrive\Users\$Usr\$_" -Destination "$Dest\$Usr\"
 		}
 		else{
 			if (!(Test-Path $Dest\$Usr\RootFolders)){
 				New-Item $Dest\$Usr\RootFolders -ItemType Directory | Out-Null
 			}
 			if ([string]$_ -ne "Contacts" -and [string]$_ -ne "Desktop" -and [string]$_ -ne "Documents" -and [string]$_ -ne "Downloads" -and [string]$_ -ne "Favorites" -and [string]$_ -ne "Music" -and [string]$_ -ne "Pictures" -and [string]$_ -ne "Videos" -and [string]$_ -ne "3D Objects" -and [string]$_ -ne "Links" -and [string]$_ -ne "OneDrive" -and [string]$_ -ne "Saved Games" -and [string]$_ -ne "Searches"){
-				Copy-Item "$Home\$_" -Recurse -Destination "$Dest\$Usr\RootFolders"
+				Copy-Item "$SystemDrive\Users\$Usr\$_" -Recurse -Destination "$Dest\$Usr\RootFolders"
 			}
 		}
 	}
 	$FoldersToCopy | Foreach-Object{
 		Write-Host "Copying $_ Folder"
 		$DestSub = "$Dest\$Usr\$_"
-		CopyFiles "$HOME\$_" "$_"
+		CopyFiles "$SystemDrive\Users\$Usr\$_" "$_"
 	}
 	Stop-Process -Name chrome -ErrorAction SilentlyContinue
 	Stop-Process -Name msedge -ErrorAction SilentlyContinue
 	Stop-Process -Name firefox -ErrorAction SilentlyContinue
-	if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
+	if (Test-Path "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default"){
 		Write-Host "Copying Chrome Data"
-		Copy-Item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
+		Copy-Item "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
 	}
 	Write-Host "Copying Edge Data"
 	Copy-Item "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Destination $Dest\$Usr\EdgeData\Default -Recurse
-	if (Test-Path "$Home\AppData\Roaming\Mozilla\Firefox\Profiles"){
+	if (Test-Path "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\Profiles"){
 		Write-Host "Copying Firefox Data"
-		Copy-Item "$Home\AppData\Roaming\Mozilla\Firefox\Profiles" -Destination $Dest\$Usr\FirefoxData\Profiles -Recurse
-		Copy-Item "$Home\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Destination $Dest\$Usr\FirefoxData\profiles.ini
+		Copy-Item "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\Profiles" -Destination $Dest\$Usr\FirefoxData\Profiles -Recurse
+		Copy-Item "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Destination $Dest\$Usr\FirefoxData\profiles.ini
 	}
 }
 function PutProfile{
 	param([parameter(Mandatory=$false)][string]$Repo)
-	$ValidProfiles = @()
+	$ValidPasteProfiles = @()
 	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
 	if ($Repo.Length -eq 0){
 		$Repo = Read-Host "Enter Profile Source Path"
 	}
 	if ($Usr.Length -eq 0){
 		Write-Host "================================="
-		Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){Write-Host $_;$ValidProfiles += $_}}
-		if ($ValidProfiles.Length -eq 0){
+		Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){Write-Host $_;$ValidPasteProfiles += $_}}
+		if ($ValidPasteProfiles.Length -eq 0){
 			Write-Host "NO PROFILES FOUND"
 			Write-Host "================================="
 			exit
 		}
 		Write-Host "================================="
 		$Usr = Read-Host "Which profile would you like to paste?"
-		if (!($Usr.Contains($ValidProfiles))){
+		if (!($Usr.Contains($ValidPasteProfiles))){
 			Write-Host "Invalid Selection!"
 			exit
 		}
@@ -169,12 +169,24 @@ function PutProfile{
 		exit
 	}
 }
+#START HERE
+$SystemDrive = (Get-WmiObject Win32_OperatingSystem).SystemDrive
 if ([string]$args[0] -eq "-c"){
 	$Usr = $Env:UserName
 	$Mode = "c"
 }
 elseif ([string]$args[0] -eq "-p"){
 	$Mode = "p"
+}
+elseif ([string]$args[0] -eq "-co"){
+	$CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+	if ($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){
+		$Mode = "co"
+	}
+	else{
+		Write-Host "ERROR: Current user is not Administrator. `"-co`" option can only be used as Administrator"
+		exit
+	}
 }
 elseif ([string]$args[0] -eq "-h"){
 	Write-Host "Usage:"
@@ -183,12 +195,13 @@ elseif ([string]$args[0] -eq "-h"){
 	Write-Host "|| OPTIONS:                                                          ||"
 	Write-Host "======================================================================="
 	Write-Host "|| -c                                                   Copy Profile ||"
+	Write-Host "|| -co                           Copy Specified User (Must Be Admin) ||"
 	Write-Host "|| -p                                                  Paste Profile ||"
 	Write-Host "|| -h                                                Print This Page ||"
 	Write-Host "======================================================================="
 	Write-Host "|| OPTIONS 2:                                                        ||"
 	Write-Host "======================================================================="
-	Write-Host "|| -u                                           Paste <PROFILE NAME> ||"
+	Write-Host "|| -u                                        Specifiy <PROFILE NAME> ||"
 	Write-Host "|| -a                       Assume (Automatically gets profile name) ||"
 	Write-Host "======================================================================="
 	Write-Host "||                                NOTE                               ||"
@@ -198,7 +211,7 @@ elseif ([string]$args[0] -eq "-h"){
 	exit
 }
 else{
-	$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
+	$Mode = Read-Host "Would you like to copy or paste profile? (c,co,p)"
 }
 if ($Mode -eq "c"){
 	$Usr = $Env:UserName
@@ -206,6 +219,54 @@ if ($Mode -eq "c"){
 		TakeProfile $args[1]
 	}
 	else{
+		TakeProfile
+	}
+}
+elseif ($Mode -eq "co"){
+	if ([string]$args[1]){
+		if ([string]$args[1] -eq "-u"){
+			if ([string]$args[2]){
+				$Usr = [string]$args[2]
+				if ([string]$args[3]){
+					TakeProfile $args[3]
+				}
+				else{
+					TakeProfile
+				}
+			}
+			else {
+				$ValidCopyProfiles = @()
+				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidCopyProfiles += $_.ToString()}}}
+				Write-Host "================================="
+				$Usr = Read-Host "Which profile would you like to copy?"
+				if (!($ValidCopyProfiles.Contains($Usr))){
+					Write-Host "Invalid Selection!"
+					exit
+				}
+				TakeProfile
+			}
+		}
+		else{
+				$ValidCopyProfiles = @()
+				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidCopyProfiles += $_.ToString()}}}
+				Write-Host "================================="
+				$Usr = Read-Host "Which profile would you like to copy?"
+				if (!($ValidCopyProfiles.Contains($Usr))){
+					Write-Host "Invalid Selection!"
+					exit
+				}
+				TakeProfile
+		}
+	}
+	else {
+		$ValidCopyProfiles = @()
+		Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidCopyProfiles += $_.ToString()}}}
+		Write-Host "================================="
+		$Usr = Read-Host "Which profile would you like to copy?"
+		if (!($ValidCopyProfiles.Contains($Usr))){
+			Write-Host "Invalid Selection!"
+			exit
+		}
 		TakeProfile
 	}
 }
