@@ -106,12 +106,14 @@ function PutProfile{
 		if ($ValidPasteProfiles.Length -eq 0){
 			Write-Host "NO PROFILES FOUND"
 			Write-Host "================================="
+			sleep 5
 			exit
 		}
 		Write-Host "================================="
 		$Usr = Read-Host "Which profile would you like to paste?"
 		if (!($Usr.Contains($ValidPasteProfiles))){
 			Write-Host "Invalid Selection!"
+			sleep 5
 			exit
 		}
 	}
@@ -161,11 +163,13 @@ function PutProfile{
 		}
 		else{
 			Write-Host "User Profile Not Found!"
+			sleep 5
 			exit
 		}
 	}
 	else{
 		Write-Host "Invalid Source Path!"
+		sleep 5
 		exit
 	}
 }
@@ -201,6 +205,7 @@ elseif ([string]$args[0] -eq "-h"){
 	Write-Host "======================================================================="
 	Write-Host "|| OPTIONS 2 and PROFILE NAME are only valid when -p option selected ||"
 	Write-Host "======================================================================="
+	sleep 5
 	exit
 }
 else{
@@ -219,6 +224,7 @@ elseif ($Mode -eq "co"){
 	$CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 	if (!($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))){
 		Write-Host "ERROR: Current user is not Administrator. `"-co`" option can only be used as Administrator"
+		sleep 5
 		exit
 	}
 	if ([string]$args[1]){
@@ -239,6 +245,7 @@ elseif ($Mode -eq "co"){
 				$Usr = Read-Host "Which profile would you like to copy?"
 				if (!($ValidCopyProfiles.Contains($Usr))){
 					Write-Host "Invalid Selection!"
+					sleep 5
 					exit
 				}
 				TakeProfile
@@ -251,6 +258,7 @@ elseif ($Mode -eq "co"){
 				$Usr = Read-Host "Which profile would you like to copy?"
 				if (!($ValidCopyProfiles.Contains($Usr))){
 					Write-Host "Invalid Selection!"
+					sleep 5
 					exit
 				}
 				TakeProfile
@@ -263,6 +271,7 @@ elseif ($Mode -eq "co"){
 		$Usr = Read-Host "Which profile would you like to copy?"
 		if (!($ValidCopyProfiles.Contains($Usr))){
 			Write-Host "Invalid Selection!"
+			sleep 5
 			exit
 		}
 		TakeProfile
@@ -289,5 +298,6 @@ elseif ($Mode -eq "p"){
 else{
 	Write-Host "Invalid Selection!"
 	exit
+	sleep 5
 }
 Write-Host "Done"
