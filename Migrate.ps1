@@ -179,14 +179,7 @@ elseif ([string]$args[0] -eq "-p"){
 	$Mode = "p"
 }
 elseif ([string]$args[0] -eq "-co"){
-	$CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-	if ($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){
-		$Mode = "co"
-	}
-	else{
-		Write-Host "ERROR: Current user is not Administrator. `"-co`" option can only be used as Administrator"
-		exit
-	}
+	$Mode = "co"
 }
 elseif ([string]$args[0] -eq "-h"){
 	Write-Host "Usage:"
@@ -223,6 +216,11 @@ if ($Mode -eq "c"){
 	}
 }
 elseif ($Mode -eq "co"){
+	$CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+	if (!($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))){
+		Write-Host "ERROR: Current user is not Administrator. `"-co`" option can only be used as Administrator"
+		exit
+	}
 	if ([string]$args[1]){
 		if ([string]$args[1] -eq "-u"){
 			if ([string]$args[2]){
