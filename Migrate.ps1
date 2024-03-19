@@ -86,7 +86,7 @@ function TakeProfile{
 		Copy-Item "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
 	}
 	Write-Host "Copying Edge Data"
-	Copy-Item "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Destination $Dest\$Usr\EdgeData\Default -Recurse
+	Copy-Item "$SystemDrive\Users\$Usr\AppData\Local\Microsoft\Edge\User Data\Default" -Destination $Dest\$Usr\EdgeData\Default -Recurse
 	if (Test-Path "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\Profiles"){
 		Write-Host "Copying Firefox Data"
 		Copy-Item "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\Profiles" -Destination $Dest\$Usr\FirefoxData\Profiles -Recurse
