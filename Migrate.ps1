@@ -234,7 +234,16 @@ elseif ($Mode -eq "co"){
 			if ([string]$args[2]){
 				$Usr = [string]$args[2]
 				if ([string]$args[3]){
-					TakeProfile $args[3]
+					$ValidCopyProfiles = @()
+					Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){$ValidCopyProfiles += $_.ToString()}}}
+					if ($ValidCopyProfiles.Contains($Usr)){
+						TakeProfile $args[3]
+					}
+					else{
+						Write-Host "ERROR: Invalid profile selection"
+						sleep 5
+						exit
+					}
 				}
 				else{
 					TakeProfile
