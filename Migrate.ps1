@@ -78,9 +78,11 @@ function TakeProfile{
 		$DestSub = "$Dest\$Usr\$_"
 		CopyFiles "$SystemDrive\Users\$Usr\$_" "$_"
 	}
-	Stop-Process -Name chrome -ErrorAction SilentlyContinue
-	Stop-Process -Name msedge -ErrorAction SilentlyContinue
-	Stop-Process -Name firefox -ErrorAction SilentlyContinue
+	if ($Mode -eq "c" -or $Mode -eq "p" -or $Usr -eq $Env:UserName){
+		Stop-Process -Name chrome -ErrorAction SilentlyContinue
+		Stop-Process -Name msedge -ErrorAction SilentlyContinue
+		Stop-Process -Name firefox -ErrorAction SilentlyContinue
+	}
 	if (Test-Path "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default"){
 		Write-Host "Copying Chrome Data"
 		Copy-Item "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
