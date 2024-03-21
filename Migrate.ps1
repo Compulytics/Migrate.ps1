@@ -211,7 +211,7 @@ elseif ([string]$args[0] -eq "-h"){
 	exit
 }
 else{
-	$Mode = Read-Host "Would you like to copy or paste profile? (c,co,p)"
+	$Mode = Read-Host "Would you like to copy, copy other, or paste profile? (c,co,p)"
 }
 if ($Mode -eq "c"){
 	$Usr = $Env:UserName
@@ -308,7 +308,7 @@ elseif ($Mode -eq "p"){
 }
 else{
 	Write-Host "Invalid Selection!"
-	exit
 	sleep 5
+	exit
 }
 Write-Host "Done"
