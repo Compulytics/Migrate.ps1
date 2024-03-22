@@ -28,37 +28,31 @@ function CopyFiles{
 }
 function PasteFiles{
 	param([string]$Repo, [string]$Folder)
-	Copy-Item $Repo\$Usr\$Folder $Home -Recurse -Force -ErrorAction SilentlyContinue
+	Copy-Item $Repo\$Usr\$Folder $SystemDrive\Users\$DestProfile -Recurse -Force -ErrorAction SilentlyContinue
 }
-function TakeProfile{
-	param([parameter(Mandatory=$false)][string]$Dest)
+function TakeProfile($Usr, $Dest){
+	if (!($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))){
+		if (!($Usr -eq $Env:UserName)){
+			Write-Host "ERROR: No Administrator access. Can only copy other profiles when run as Administrator!"
+			sleep 5
+			exit
+		}
+	}
 	$FoldersToCopy = @("Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
-	if ($Dest.Length -eq 0){
-		$Dest = Read-Host "Enter Destination Path"
-	}
-	else{
-		$Overwrite = "y"
-	}
 	if (Test-Path -Path $Dest\$Usr){
-		if ($Overwrite){
-			Write-Host "User ID Already Exists - Overwriting"
+		Write-Host "User ID Already Exists"
+		$Overwrite = Read-Host "Overwrite existing data? (y,n)"
+		if ($Overwrite -eq "y"){
+			Write-Host "Overwriting..."
 			remove-item $Dest\$Usr -Force -Recurse
 		}
 		else{
-			Write-Host "User ID Already Exists"
-			$Overwrite = Read-Host "Overwrite existing data? (y,n)"
-			if ($Overwrite -eq "y"){
-				remove-item $Dest\$Usr -Force -Recurse
-			}
-			else{
-				exit
-			}
+			exit
 		}
 	}
 	else{
 		New-Item $Dest\$Usr -ItemType Directory | Out-Null
 	}
-
 	Write-Host "Copying Home Folder Contents"
 	Get-ChildItem $SystemDrive\Users\$Usr\ | Foreach-Object{
 		if($_.Directory){
@@ -78,7 +72,7 @@ function TakeProfile{
 		$DestSub = "$Dest\$Usr\$_"
 		CopyFiles "$SystemDrive\Users\$Usr\$_" "$_"
 	}
-	if ($Mode -eq "c" -or $Mode -eq "p" -or $Usr -eq $Env:UserName){
+	if ($Usr -eq $Env:UserName){
 		Stop-Process -Name chrome -ErrorAction SilentlyContinue
 		Stop-Process -Name msedge -ErrorAction SilentlyContinue
 		Stop-Process -Name firefox -ErrorAction SilentlyContinue
@@ -95,36 +89,15 @@ function TakeProfile{
 		Copy-Item "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Destination $Dest\$Usr\FirefoxData\profiles.ini
 	}
 }
-function PutProfile{
-	param([parameter(Mandatory=$false)][string]$Repo)
+function PutProfile($Usr, $Repo, $DestProfile){
 	$ValidPasteProfiles = @()
 	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
-	if ($Repo.Length -eq 0){
-		$Repo = Read-Host "Enter Profile Source Path"
-	}
-	if ($Usr.Length -eq 0){
-		Write-Host "================================="
-		Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){Write-Host $_;$ValidPasteProfiles += $_}}
-		if ($ValidPasteProfiles.Length -eq 0){
-			Write-Host "NO PROFILES FOUND"
-			Write-Host "================================="
-			sleep 5
-			exit
-		}
-		Write-Host "================================="
-		$Usr = Read-Host "Which profile would you like to paste?"
-		if (!($Usr.Contains($ValidPasteProfiles))){
-			Write-Host "Invalid Selection!"
-			sleep 5
-			exit
-		}
-	}
 	if (Test-Path $Repo){
 		if (Test-Path $Repo\$Usr){
 			Write-Host "Pasting Home Folder Contents"
 			Get-ChildItem $Repo\$Usr | Foreach-Object{
 				if($_.Directory){
-					Copy-Item "$Repo\$Usr\$_" -Destination "$Home\"
+					Copy-Item "$Repo\$Usr\$_" -Destination "$SystemDrive\Users\$DestProfile\"
 				}
 			}
 			$FoldersTopaste | Foreach-Object{
@@ -142,25 +115,25 @@ function PutProfile{
 
 			if (Test-Path $Repo\$Usr\ChromeData\Default){
 				Write-Host "Pasting Chrome Data Folder"
-				if (Test-Path "$Home\AppData\Local\Google\Chrome\User Data\Default"){
-					remove-item "$Home\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
+				if (Test-Path "$SystemDrive\Users\$DestProfile\AppData\Local\Google\Chrome\User Data\Default"){
+					remove-item "$SystemDrive\Users\$DestProfile\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
 				}
-				Copy-Item $Repo\$Usr\ChromeData\Default "$Home\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
+				Copy-Item $Repo\$Usr\ChromeData\Default "$SystemDrive\Users\$DestProfile\AppData\Local\Google\Chrome\User Data\Default" -Force -Recurse
 			}
 
 			Write-Host "Pasting Edge Data Folder"
-			if (Test-Path "$Home\AppData\Local\Microsoft\Edge\User Data\Default"){
-				remove-item "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Force -Recurse
+			if (Test-Path "$SystemDrive\Users\$DestProfile\AppData\Local\Microsoft\Edge\User Data\Default"){
+				remove-item "$SystemDrive\Users\$DestProfile\AppData\Local\Microsoft\Edge\User Data\Default" -Force -Recurse
 			}
-			Copy-Item $Repo\$Usr\EdgeData\Default "$Home\AppData\Local\Microsoft\Edge\User Data\Default" -Force -Recurse
+			Copy-Item $Repo\$Usr\EdgeData\Default "$SystemDrive\Users\$DestProfile\AppData\Local\Microsoft\Edge\User Data\Default" -Force -Recurse
 			if (Test-Path $Repo\$Usr\FirefoxData\Profiles){
 				Write-Host "Pasting Firefox Data Folder"
-				if (Test-Path "$Home\AppData\Roaming\Mozilla\Firefox\Profiles"){
-					remove-item "$Home\AppData\Roaming\Mozilla\Firefox\Profiles" -Force -Recurse
-					remove-item "$Home\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Force
+				if (Test-Path "$SystemDrive\Users\$DestProfile\AppData\Roaming\Mozilla\Firefox\Profiles"){
+					remove-item "$SystemDrive\Users\$DestProfile\AppData\Roaming\Mozilla\Firefox\Profiles" -Force -Recurse
+					remove-item "$SystemDrive\Users\$DestProfile\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Force
 				}
-				Copy-Item $Repo\$Usr\FirefoxData\Profiles "$Home\AppData\Roaming\Mozilla\Firefox\Profiles" -Force -Recurse
-				Copy-Item $Repo\$Usr\FirefoxData\profiles.ini  "$Home\AppData\Roaming\Mozilla\Firefox\profiles.ini"
+				Copy-Item $Repo\$Usr\FirefoxData\Profiles "$SystemDrive\Users\$DestProfile\AppData\Roaming\Mozilla\Firefox\Profiles" -Force -Recurse
+				Copy-Item $Repo\$Usr\FirefoxData\profiles.ini  "$SystemDrive\Users\$DestProfile\AppData\Roaming\Mozilla\Firefox\profiles.ini"
 			}
 		}
 		else{
@@ -177,6 +150,7 @@ function PutProfile{
 }
 #START HERE
 $SystemDrive = (Get-WmiObject Win32_OperatingSystem).SystemDrive
+$CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if ([string]$args[0] -eq "-c"){
 	$Usr = $Env:UserName
 	$Mode = "c"
@@ -184,126 +158,222 @@ if ([string]$args[0] -eq "-c"){
 elseif ([string]$args[0] -eq "-p"){
 	$Mode = "p"
 }
-elseif ([string]$args[0] -eq "-co"){
-	$Mode = "co"
-}
 elseif ([string]$args[0] -eq "-h"){
 	Write-Host "Usage:"
-	Write-Host ".\ThisProgram.ps1 [OPTIONS] <PROFILE REPOSITORY PATH> [OPTIONS 2] <PROFILE NAME>"
+	Write-Host ".\ThisProgram.ps1 [OPTIONS] <Profile to Copy or Paste from> <Source or Destination Path> <Profile to Paste to>"
 	Write-Host "======================================================================="
 	Write-Host "|| OPTIONS:                                                          ||"
 	Write-Host "======================================================================="
 	Write-Host "|| -c                                                   Copy Profile ||"
-	Write-Host "|| -co                           Copy Specified User (Must Be Admin) ||"
 	Write-Host "|| -p                                                  Paste Profile ||"
 	Write-Host "|| -h                                                Print This Page ||"
 	Write-Host "======================================================================="
-	Write-Host "|| OPTIONS 2:                                                        ||"
+	Write-Host "|| NOTE: <Profile to Paste to> is only valid in Paste mode!          ||"
 	Write-Host "======================================================================="
-	Write-Host "|| -u                                        Specifiy <PROFILE NAME> ||"
-	Write-Host "|| -a                       Assume (Automatically gets profile name) ||"
-	Write-Host "======================================================================="
-	Write-Host "||                                NOTE                               ||"
-	Write-Host "======================================================================="
-	Write-Host "|| OPTIONS 2 and PROFILE NAME are only valid when -p option selected ||"
-	Write-Host "======================================================================="
-	sleep 5
 	exit
 }
 else{
-	$Mode = Read-Host "Would you like to copy, copy other, or paste profile? (c,co,p)"
+	$Mode = Read-Host "Would you like to copy, copy other, or paste profile? (c,p)"
 }
 if ($Mode -eq "c"){
-	$Usr = $Env:UserName
 	if ([string]$args[1]){
-		TakeProfile $args[1]
-	}
-	else{
-		TakeProfile
-	}
-}
-elseif ($Mode -eq "co"){
-	$CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-	if (!($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))){
-		Write-Host "ERROR: Current user is not Administrator. `"-co`" option can only be used as Administrator"
-		sleep 5
-		exit
-	}
-	if ([string]$args[1]){
-		if ([string]$args[1] -eq "-u"){
-			if ([string]$args[2]){
-				$Usr = [string]$args[2]
-				if ([string]$args[3]){
-					$ValidCopyProfiles = @()
-					Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){$ValidCopyProfiles += $_.ToString()}}}
-					if ($ValidCopyProfiles.Contains($Usr)){
-						TakeProfile $args[3]
-					}
-					else{
-						Write-Host "ERROR: Invalid profile selection"
-						sleep 5
-						exit
-					}
+		if ([string]$args[2]){
+			if (Test-Path $args[2]){
+				$ValidSourceProfiles = @()
+				Get-Childitem $SystemDrive\Users | Foreach-Object{if(!($_.directory)){$ValidSourceProfiles += $_.ToString()}}
+				if ($ValidSourceProfiles.Contains([string]$args[1])){
+					TakeProfile $args[1] $args[2]
 				}
 				else{
-					TakeProfile
-				}
-			}
-			else {
-				$ValidCopyProfiles = @()
-				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidCopyProfiles += $_.ToString()}}}
-				Write-Host "================================="
-				$Usr = Read-Host "Which profile would you like to copy?"
-				if (!($ValidCopyProfiles.Contains($Usr))){
-					Write-Host "Invalid Selection!"
+					Write-Host "ERROR: Invalid source profile selected!"
 					sleep 5
 					exit
 				}
-				TakeProfile
+			}
+			else{
+				New-Item -Path $args[2] -ItemType "Directory" | Out-Null
+				Get-Childitem $SystemDrive\Users | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){$ValidSourceProfiles += $_.ToString()}}}
+				if ($ValidSourceProfiles.Contains($args[1])){
+					TakeProfile $Usr $args[2]
+				}
+				else{
+					Write-Host "ERROR: Invalid source profile selected!"
+					sleep 5
+					exit
+				}
 			}
 		}
 		else{
-				$ValidCopyProfiles = @()
-				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidCopyProfiles += $_.ToString()}}}
-				Write-Host "================================="
-				$Usr = Read-Host "Which profile would you like to copy?"
-				if (!($ValidCopyProfiles.Contains($Usr))){
-					Write-Host "Invalid Selection!"
+			$Repo = Read-Host "Enter the path of the repository where you will store your profile"
+			if (Test-Path $Repo){
+				$ValidSourceProfiles = @()
+				Get-Childitem $SystemDrive\Users | Foreach-Object{if(!($_.directory)){$ValidSourceProfiles += $_.ToString()}}
+				if ($ValidSourceProfiles.Contains([string]$args[1])){
+					TakeProfile $args[1] $Repo
+				}
+				else{
+					Write-Host "ERROR: Invalid source profile selected!"
 					sleep 5
 					exit
 				}
-				TakeProfile
+			}
+			else{
+				New-Item -Path $Repo -ItemType "Directory" | Out-Null
+				Get-Childitem $SystemDrive\Users | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){$ValidSourceProfiles += $_.ToString()}}}
+				if ($ValidSourceProfiles.Contains($args[1])){
+					TakeProfile $args[1] $Repo
+				}
+				else{
+					Write-Host "ERROR: Invalid source profile selected!"
+					sleep 5
+					exit
+				}
+			}
 		}
 	}
-	else {
-		$ValidCopyProfiles = @()
-		Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidCopyProfiles += $_.ToString()}}}
-		Write-Host "================================="
-		$Usr = Read-Host "Which profile would you like to copy?"
-		if (!($ValidCopyProfiles.Contains($Usr))){
-			Write-Host "Invalid Selection!"
-			sleep 5
-			exit
+	else{
+		$Repo = Read-Host "Enter the path of the repository where you will store your profile"
+		if (Test-Path $Repo){
+			Write-Host "================================="
+			Get-Childitem $SystemDrive\Users | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidSourceProfiles += $_.ToString()}}}
+			Write-Host "================================="
+			$Usr = Read-Host "Which profile would you like to copy?"
+			if ($ValidSourceProfiles.Contains($Usr)){
+				TakeProfile $Usr $Repo
+			}
+			else{
+				Write-Host "ERROR: Invalid source profile selected!"
+				sleep 5
+				exit
+			}
 		}
-		TakeProfile
+		else{
+			New-Item -Path $Repo -ItemType "Directory" | Out-Null
+			Write-Host "================================="
+			Get-Childitem $SystemDrive\Users | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidSourceProfiles += $_.ToString()}}}
+			Write-Host "================================="
+			$Usr = Read-Host "Which profile would you like to copy?"
+			if ($ValidSourceProfiles.Contains($Usr)){
+				TakeProfile $Usr $Repo
+			}
+			else{
+				Write-Host "ERROR: Invalid source profile selected!"
+				sleep 5
+				exit
+			}
+		}
 	}
 }
 elseif ($Mode -eq "p"){
 	if ([string]$args[1]){
 		if ([string]$args[2]){
-			if ([string]$args[2] -eq "-u"){
-				if ([string]$args[3]){
-					$Usr = [string]$args[3]
+			if ([string]$args[3]){
+				if (Test-Path $args[2]){
+					$ValidSourceProfiles = @()
+					Get-Childitem $args[2] | Foreach-Object{if(!($_.directory)){$ValidSourceProfiles += $_.ToString()}}
+					if (!($ValidSourceProfiles.Contains([string]$args[1]))){
+						Write-Host "ERROR: Invalid source profile selected!"
+						sleep 5
+						exit
+					}
+					$ValidDestProfiles = @()
+					Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){$ValidDestProfiles += $_.ToString()}}}
+					if ($ValidDestProfiles.Contains($args[3])){
+						PutProfile $args[1] $args[2] $args[3]
+					}
+					else{
+						Write-Host "ERROR: Invalid destination profile selected!"
+						sleep 5
+						exit
+					}
+				}
+				else{
+					Write-Host "ERROR: Invalid source path!"
+					sleep 5
+					exit
 				}
 			}
-			elseif ([string]$args[2] -eq "-a"){
-				$Usr = $Env:UserName
+			else{
+				Write-Host $args[2]
+				if (Test-Path $args[2]){
+					$ValidSourceProfiles = @()
+					Get-Childitem $args[2] | Foreach-Object{if(!($_.directory)){$ValidSourceProfiles += $_.ToString()}}
+					if (!($ValidSourceProfiles.Contains([string]$args[1]))){
+						Write-Host "ERROR: Invalid source profile selected."
+						sleep 5
+						exit
+					}
+				}
+				else{
+					Write-Host "ERROR: Invalid source path!"
+					sleep 5
+					exit
+				}
+				$ValidDestProfiles = @()
+				Write-Host "================================="
+				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidDestProfiles += $_.ToString()}}}
+				Write-Host "================================="
+				$UsrDest = Read-Host "Which profile would you like to paste to?"
+				if ($ValidDestProfiles.Contains($UsrDest)){
+					PutProfile $args[1] $args[2] $UsrDest
+				}
 			}
 		}
-		PutProfile $args[1]
+		else{
+			$Repo = Read-Host "Enter profile repository path"
+			if (Test-Path $Repo){
+				$ValidSourceProfiles = @()
+				Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){$ValidSourceProfiles += $_.ToString()}}}
+				if (!($ValidSourceProfiles.Contains([string]$args[1]))){
+					Write-Host "ERROR: Invalid profile source selected!"
+					sleep 5
+					exit
+				}
+				$ValidDestProfiles = @()
+				Write-Host "================================="
+				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidDestProfiles += $_.ToString()}}}
+				Write-Host "================================="
+				$UsrDest = Read-Host "Which profile would you like to paste to?"
+				if ($ValidDestProfiles.Contains($UsrDest)){
+					PutProfile $args[1] $Repo $UsrDest
+				}
+			}
+		}
 	}
 	else{
-		PutProfile
+		$Repo = Read-Host "Enter profile repository path"
+		if (Test-Path $Repo){
+			$ValidSourceProfiles = @()
+			Write-Host "================================="
+			Get-Childitem $Repo | Foreach-Object{if(!($_.directory)){Write-Host $_;$ValidSourceProfiles += $_.ToString()}}
+			Write-Host "================================="
+			$UsrSource = Read-Host "Which profile would you like to paste from?"
+			if ($ValidSourceProfiles.Contains($UsrSource)){
+				$ValidDestProfiles = @()
+				Write-Host "================================="
+				Get-Childitem $SystemDrive\Users\ | Foreach-Object{if(!($_.directory)){if ($_.Name -ne "Public"){Write-Host $_;$ValidDestProfiles += $_.ToString()}}}
+				Write-Host "================================="
+				$UsrDest = Read-Host "Which profile would you like to paste to?"
+				if ($ValidDestProfiles.Contains($UsrDest)){
+					PutProfile $UsrSource $Repo $UsrDest
+				}
+				else{
+					Write-Host "Invalid Selection!"
+					sleep 5
+					exit
+				}
+			}
+			else{
+				Write-Host "Invalid Selection!"
+				sleep 5
+				exit
+			}
+		}
+		else{
+			Write-Host "Invalid profile repository path!"
+			sleep 5
+			exit
+		}
 	}
 }
 else{
@@ -312,3 +382,4 @@ else{
 	exit
 }
 Write-Host "Done"
+#END HERE
