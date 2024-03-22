@@ -14,7 +14,7 @@ function CopyFiles{
 				$DirectoryArray | ForEach-Object {
 					$DirectoryBuffer += "$_\"
 					if (!(Test-Path $DirectoryBuffer)){
-						New-Item $DirectoryBuffer -ItemType Directory | Out-Null
+						New-Item $DirectoryBuffer -ItemType Directory -Force | Out-Null
 					}
 				}
 			}
@@ -22,7 +22,7 @@ function CopyFiles{
 		$File = $_.FullName
 		$DSTFileName = $File.Replace($Src,"")
 		if (!(Test-Path $DestSub$DSTFileName)){
-			Copy-Item "$File" -Destination "$DestSub$DSTFileName"
+			Copy-Item "$File" -Destination "$DestSub$DSTFileName" -Force
 		}
 	}
 }
