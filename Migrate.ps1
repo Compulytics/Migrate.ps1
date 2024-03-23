@@ -173,7 +173,7 @@ elseif ([string]$args[0] -eq "-h"){
 	exit
 }
 else{
-	$Mode = Read-Host "Would you like to copy, copy other, or paste profile? (c,p)"
+	$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
 }
 if ($Mode -eq "c"){
 	if ([string]$args[1]){
