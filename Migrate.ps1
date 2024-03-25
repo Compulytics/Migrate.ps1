@@ -72,10 +72,11 @@ function TakeProfile($Usr, $Dest){
 		$DestSub = "$Dest\$Usr\$_"
 		CopyFiles "$SystemDrive\Users\$Usr\$_" "$_"
 	}
-	if ($Usr -eq $Env:UserName){
-		Stop-Process -Name chrome -ErrorAction SilentlyContinue
-		Stop-Process -Name msedge -ErrorAction SilentlyContinue
-		Stop-Process -Name firefox -ErrorAction SilentlyContinue
+	$CurrentProcesses = $((get-wmiobject win32_process -computername $((hostname)) | Select-Object ProcessName))
+	if ($CurrentProcesses.ProcessName.Contains("chrome.exe") -or $CurrentProcesses.ProcessName.Contains("msedge.exe") -or $CurrentProcesses.ProcessName.Contains("firefox")){
+		Get-Process -Name chrome -ErrorAction SilentlyContinue | Stop-Process -Force
+		Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force
+		Get-Process -Name firefox -ErrorAction SilentlyContinue | Stop-Process -Force
 	}
 	if (Test-Path "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default"){
 		Write-Host "Copying Chrome Data"
