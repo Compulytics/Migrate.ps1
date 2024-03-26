@@ -110,10 +110,12 @@ function PutProfile($Usr, $Repo, $DestProfile){
 				}
 				PasteFiles "$Repo" "$_"
 			}
-			Stop-Process -Name chrome -ErrorAction SilentlyContinue
-			Stop-Process -Name msedge -ErrorAction SilentlyContinue
-			Stop-Process -Name firefox -ErrorAction SilentlyContinue
-
+			$CurrentProcesses = $((get-wmiobject win32_process -computername $((hostname)) | Select-Object ProcessName))
+			if ($CurrentProcesses.ProcessName.Contains("chrome.exe") -or $CurrentProcesses.ProcessName.Contains("msedge.exe") -or $CurrentProcesses.ProcessName.Contains("firefox")){
+				Get-Process -Name chrome -ErrorAction SilentlyContinue | Stop-Process -Force
+				Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force
+				Get-Process -Name firefox -ErrorAction SilentlyContinue | Stop-Process -Force
+			}
 			if (Test-Path $Repo\$Usr\ChromeData\Default){
 				Write-Host "Pasting Chrome Data Folder"
 				if (Test-Path "$SystemDrive\Users\$DestProfile\AppData\Local\Google\Chrome\User Data\Default"){
