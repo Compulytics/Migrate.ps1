@@ -5,41 +5,41 @@ function CopyFiles{
 	param([string]$Src, [string]$Folder)
 
 	# Check if the destination path exists, if not create it
-	if (!(Test-Path -Path $Dest\$Usr\$Folder)){
-		New-Item $Dest\$Usr\$Folder -ItemType Directory | Out-Null
-	}
+	if (!(Test-Path -Path $DestinationPath)) {
+        New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null
+    }
 
-	# Get all files and directories from the source, sorted by name in descending order
-	Get-ChildItem $Src -Recurse -Force | Sort-Object -Property FullName -Descending | ForEach-Object {
-		if ($_.Directory){
-			# Create any missing directories in the destination path
-			$StrDir = [string]$_.Directory
-			$SubDirs = $StrDir.replace($Src,"")
-			if (!(Test-Path -Path $DestSub$SubDirs)){
-				$FullPath = "$DestSub$SubDirs"
-				$DirectoryArray = $FullPath.split("\")
-				$DirectoryBuffer = ""
-				$DirectoryArray | ForEach-Object {
-					$DirectoryBuffer += "$_\"
-					if (!(Test-Path $DirectoryBuffer)){
-						New-Item $DirectoryBuffer -ItemType Directory -Force | Out-Null
-					}
-				}
-			}
-		}
-		# Copy each file to the destination path
-		$File = $_.FullName
-		$DSTFileName = $File.Replace($Src,"")
-		if (!(Test-Path $DestSub$DSTFileName)){
-			Copy-Item "$File" -Destination "$DestSub$DSTFileName" -Force
-		}
-	}
+	# Use Robocopy to copy the files and folders
+    $DestinationPath = "$Dest\$Usr\$Folder"
+    $LogDir = "$Dest\Logs\$Usr"
+    $LogFile = "$LogDir\robocopy_log_$Folder.txt"
+    
+    # Ensure robocopy log directory exists
+    if (!(Test-Path -Path $LogDir)) {
+        New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+    }
+
+    # Execute robocopy
+    Start-Process robocopy -ArgumentList "$Src $DestinationPath /MIR /LOG:$LogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
 }
+
 # Function to paste files from the repository to the destination user profile
 function PasteFiles{
 	param([string]$Repo, [string]$Folder)
-	# Copy the specified folder from the repository to the destination user profile
-	Copy-Item $Repo\$Usr\$Folder $SystemDrive\Users\$DestProfile -Recurse -Force -ErrorAction SilentlyContinue
+
+    # Use Robocopy to copy the files and folders
+    $SourcePath = "$Repo\$Usr\$Folder"
+    $DestinationPath = "$SystemDrive\Users\$DestProfile\$Folder"
+    $LogDir = "$Repo\Logs\$Usr"
+    $LogFile = "$LogDir\robocopy_log_$Folder.txt"
+
+    # Ensure log directory exists
+    if (!(Test-Path -Path $LogDir)) {
+        New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+    }
+
+    # Execute robocopy
+    Start-Process robocopy -ArgumentList "$SourcePath $DestinationPath /E /LOG:$LogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
 }
 
 # Function to take (backup) a user profile
