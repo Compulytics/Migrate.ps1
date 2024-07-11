@@ -38,8 +38,21 @@ function PasteFiles{
         New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
     }
 
-    # Execute robocopy
-    Start-Process robocopy -ArgumentList "$SourcePath $DestinationPath /E /LOG:$LogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
+	if ($Folder -eq "RootFolders") {
+		# Copy each subfolder in RootFolders individually
+		Get-ChildItem -Directory $SourcePath | ForEach-Object {
+			$SubFolder = $_.Name
+			$SubSourcePath = "$SourcePath\$SubFolder"
+			$SubDestinationPath = "$DestinationPath\$SubFolder"
+			$SubLogFile = "$LogDir\robocopy_log_RootFolders_$SubFolder.txt"
+			
+			# Execute robocopy for each subfolder
+			Start-Process robocopy -ArgumentList "$SubSourcePath $SubDestinationPath /E /LOG:$SubLogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
+		}
+	} else {
+		# Execute robocopy for each subfolder
+		Start-Process robocopy -ArgumentList "$SourcePath $DestinationPath /E /LOG:$LogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
+	}
 }
 
 # Function to take (backup) a user profile
