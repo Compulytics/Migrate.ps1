@@ -1,36 +1,64 @@
+# This script performs backup and restore operations for Windows user profiles, including browser data for Chrome, Edge, and Firefox.
+
+# Function to copy files from the source directory to the destination directory
 function CopyFiles{
 	param([string]$Src, [string]$Folder)
-	if (!(Test-Path -Path $Dest\$Usr\$Folder)){
-		New-Item $Dest\$Usr\$Folder -ItemType Directory | Out-Null
-	}
-	Get-ChildItem $Src -Recurse -Force | Sort-Object -Property FullName -Descending | ForEach-Object {
-		if ($_.Directory){
-			$StrDir = [string]$_.Directory
-			$SubDirs = $StrDir.replace($Src,"")
-			if (!(Test-Path -Path $DestSub$SubDirs)){
-				$FullPath = "$DestSub$SubDirs"
-				$DirectoryArray = $FullPath.split("\")
-				$DirectoryBuffer = ""
-				$DirectoryArray | ForEach-Object {
-					$DirectoryBuffer += "$_\"
-					if (!(Test-Path $DirectoryBuffer)){
-						New-Item $DirectoryBuffer -ItemType Directory -Force | Out-Null
-					}
-				}
-			}
-		}
-		$File = $_.FullName
-		$DSTFileName = $File.Replace($Src,"")
-		if (!(Test-Path $DestSub$DSTFileName)){
-			Copy-Item "$File" -Destination "$DestSub$DSTFileName" -Force
-		}
-	}
+
+	# Check if the destination path exists, if not create it
+	if (!(Test-Path -Path $DestinationPath)) {
+        New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null
+    }
+
+	# Use Robocopy to copy the files and folders
+    $DestinationPath = "$Dest\$Usr\$Folder"
+    $LogDir = "$Dest\Logs\$Usr"
+    $LogFile = "$LogDir\robocopy_log_$Folder.txt"
+    
+    # Ensure robocopy log directory exists
+    if (!(Test-Path -Path $LogDir)) {
+        New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+    }
+
+    # Execute robocopy
+    Start-Process robocopy -ArgumentList "$Src $DestinationPath /MIR /LOG:$LogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
 }
+
+# Function to paste files from the repository to the destination user profile
 function PasteFiles{
 	param([string]$Repo, [string]$Folder)
-	Copy-Item $Repo\$Usr\$Folder $SystemDrive\Users\$DestProfile -Recurse -Force -ErrorAction SilentlyContinue
+
+    # Use Robocopy to copy the files and folders
+    $SourcePath = "$Repo\$Usr\$Folder"
+    $DestinationPath = "$SystemDrive\Users\$DestProfile\$Folder"
+    $LogDir = "$Repo\Logs\$Usr"
+    $LogFile = "$LogDir\robocopy_log_$Folder.txt"
+
+    # Ensure log directory exists
+    if (!(Test-Path -Path $LogDir)) {
+        New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+    }
+
+	if ($Folder -eq "RootFolders") {
+		# Copy each subfolder in RootFolders individually
+		Get-ChildItem -Directory $SourcePath | ForEach-Object {
+			$SubFolder = $_.Name
+			$SubSourcePath = "$SourcePath\$SubFolder"
+			$SubDestinationPath = "$DestinationPath\$SubFolder"
+			$SubLogFile = "$LogDir\robocopy_log_RootFolders_$SubFolder.txt"
+			
+			# Execute robocopy for each subfolder
+			Start-Process robocopy -ArgumentList "$SubSourcePath $SubDestinationPath /E /LOG:$SubLogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
+		}
+	} else {
+		# Execute robocopy for each subfolder
+		Start-Process robocopy -ArgumentList "$SourcePath $DestinationPath /E /LOG:$LogFile /NFL /NDL /NP /R:3 /W:5" -NoNewWindow -Wait
+	}
 }
+
+# Function to take (backup) a user profile
 function TakeProfile($Usr, $Dest){
+
+	# Check if the script is running with administrative privileges
 	if (!($CurrentUserPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))){
 		if (!($Usr -eq $Env:UserName)){
 			Write-Host "ERROR: No Administrator access. Can only copy other profiles when run as Administrator!"
@@ -38,7 +66,11 @@ function TakeProfile($Usr, $Dest){
 			exit
 		}
 	}
+
+	# List of folders to copy from the user profile
 	$FoldersToCopy = @("Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
+
+	# Check if the destination path for the user profile already exists
 	if (Test-Path -Path $Dest\$Usr){
 		Write-Host "User ID Already Exists"
 		$Overwrite = Read-Host "Overwrite existing data? (y,n)"
@@ -53,6 +85,8 @@ function TakeProfile($Usr, $Dest){
 	else{
 		New-Item $Dest\$Usr -ItemType Directory | Out-Null
 	}
+
+	# Copy home folder contents
 	Write-Host "Copying Home Folder Contents"
 	Get-ChildItem $SystemDrive\Users\$Usr\ | Foreach-Object{
 		if($_.Directory){
@@ -67,17 +101,23 @@ function TakeProfile($Usr, $Dest){
 			}
 		}
 	}
+
+	# Copy predefined folders
 	$FoldersToCopy | Foreach-Object{
 		Write-Host "Copying $_ Folder"
 		$DestSub = "$Dest\$Usr\$_"
 		CopyFiles "$SystemDrive\Users\$Usr\$_" "$_"
 	}
+
+	# Terminate any running browser processes to ensure data integrity
 	$CurrentProcesses = $((get-wmiobject win32_process -computername $((hostname)) | Select-Object ProcessName))
 	if ($CurrentProcesses.ProcessName.Contains("chrome.exe") -or $CurrentProcesses.ProcessName.Contains("msedge.exe") -or $CurrentProcesses.ProcessName.Contains("firefox")){
 		Get-Process -Name chrome -ErrorAction SilentlyContinue | Stop-Process -Force
 		Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force
 		Get-Process -Name firefox -ErrorAction SilentlyContinue | Stop-Process -Force
 	}
+
+	# Copy browser data
 	if (Test-Path "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default"){
 		Write-Host "Copying Chrome Data"
 		Copy-Item "$SystemDrive\Users\$Usr\AppData\Local\Google\Chrome\User Data\Default" -Destination $Dest\$Usr\ChromeData\Default -Recurse
@@ -90,9 +130,15 @@ function TakeProfile($Usr, $Dest){
 		Copy-Item "$SystemDrive\Users\$Usr\AppData\Roaming\Mozilla\Firefox\profiles.ini" -Destination $Dest\$Usr\FirefoxData\profiles.ini
 	}
 }
+
+# Function to put (restore) a user profile
 function PutProfile($Usr, $Repo, $DestProfile){
 	$ValidPasteProfiles = @()
+
+	# List of folders to paste back to the user profile
 	$FoldersToPaste = @("RootFolders\*","Contacts","Desktop","Documents","Downloads","Favorites","Music","Pictures","Videos")
+
+	# Check if the repository path exists
 	if (Test-Path $Repo){
 		if (Test-Path $Repo\$Usr){
 			Write-Host "Pasting Home Folder Contents"
@@ -101,6 +147,8 @@ function PutProfile($Usr, $Repo, $DestProfile){
 					Copy-Item "$Repo\$Usr\$_" -Destination "$SystemDrive\Users\$DestProfile\"
 				}
 			}
+
+			# Paste each folder back to the destination user profile
 			$FoldersTopaste | Foreach-Object{
 				if ([string]$_ -eq "RootFolders\*"){
 					Write-Host "Pasting Home Folder Folders"
@@ -110,12 +158,16 @@ function PutProfile($Usr, $Repo, $DestProfile){
 				}
 				PasteFiles "$Repo" "$_"
 			}
+
+			# Terminate any running browser processes to ensure data integrity
 			$CurrentProcesses = $((get-wmiobject win32_process -computername $((hostname)) | Select-Object ProcessName))
 			if ($CurrentProcesses.ProcessName.Contains("chrome.exe") -or $CurrentProcesses.ProcessName.Contains("msedge.exe") -or $CurrentProcesses.ProcessName.Contains("firefox")){
 				Get-Process -Name chrome -ErrorAction SilentlyContinue | Stop-Process -Force
 				Get-Process -Name msedge -ErrorAction SilentlyContinue | Stop-Process -Force
 				Get-Process -Name firefox -ErrorAction SilentlyContinue | Stop-Process -Force
 			}
+
+			# Paste browser data
 			if (Test-Path $Repo\$Usr\ChromeData\Default){
 				Write-Host "Pasting Chrome Data Folder"
 				if (Test-Path "$SystemDrive\Users\$DestProfile\AppData\Local\Google\Chrome\User Data\Default"){
@@ -151,9 +203,14 @@ function PutProfile($Usr, $Repo, $DestProfile){
 		exit
 	}
 }
-#START HERE
+
+# Main script execution starts here
+
+# Get the system drive and current user principal
 $SystemDrive = (Get-WmiObject Win32_OperatingSystem).SystemDrive
 $CurrentUserPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+
+# Process command-line arguments
 if ([string]$args[0] -eq "-c"){
 	$Usr = $Env:UserName
 	$Mode = "c"
@@ -162,6 +219,7 @@ elseif ([string]$args[0] -eq "-p"){
 	$Mode = "p"
 }
 elseif ([string]$args[0] -eq "-h"){
+	# Display help menu
 	Write-Host "Usage:"
 	Write-Host ".\ThisProgram.ps1 [OPTIONS] <Profile to Copy or Paste from> <Source or Destination Path> <Profile to Paste to>"
 	Write-Host "======================================================================="
@@ -176,8 +234,11 @@ elseif ([string]$args[0] -eq "-h"){
 	exit
 }
 else{
+	# Ask the user if they want to copy or paste a profile
 	$Mode = Read-Host "Would you like to copy or paste profile? (c,p)"
 }
+
+# Perform copy or paste operation based on the selected mode
 if ($Mode -eq "c"){
 	if ([string]$args[1]){
 		if ([string]$args[2]){
